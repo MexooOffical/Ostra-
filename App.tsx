@@ -1,111 +1,136 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
-import { Projects } from './components/Projects';
 import { Pricing } from './components/Pricing';
 import { FAQ } from './components/FAQ';
 import { CTA } from './components/CTA';
+import { Footer } from './components/Footer';
 import { Auth } from './components/Auth';
 import { Builder } from './components/Builder';
-import { Footer } from './components/Footer';
+import { Profile } from './components/Profile';
+import { CheckoutModal } from './components/CheckoutModal';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'home' | 'auth' | 'builder'>('home');
+  const [view, setView] = useState<'landing' | 'builder' | 'profile'>('landing');
+  const [showAuth, setShowAuth] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pendingPrompt, setPendingPrompt] = useState<string>('');
+  const [builderPrompt, setBuilderPrompt] = useState('');
   
+  // Checkout Modal State
+  const [checkoutPlan, setCheckoutPlan] = useState<{ title: string, price: string } | null>(null);
+
+  // Mock Auth State Listener
+  useEffect(() => {
+    const storedAuth = localStorage.getItem('ostra_auth');
+    if (storedAuth) {
+        setIsAuthenticated(true);
+    }
+  }, []);
+
   const handleStartBuilder = (prompt: string) => {
-    if (!isAuthenticated) {
-      setPendingPrompt(prompt);
-      setView('auth');
-    } else {
-      setPendingPrompt(prompt);
+    setBuilderPrompt(prompt);
+    if (isAuthenticated) {
       setView('builder');
+    } else {
+      setShowAuth(true);
     }
   };
 
-  const handleLoginSuccess = async () => {
+  const handleLoginSuccess = () => {
+    localStorage.setItem('ostra_auth', 'true');
     setIsAuthenticated(true);
-    
-    // If there was a pending prompt, go straight to builder
-    if (pendingPrompt) {
-      setView('builder');
-    } else {
-      setView('home');
+    setShowAuth(false);
+    // If a user tried to build something before logging in, send them to builder now
+    if (builderPrompt && view === 'landing') {
+        setView('builder');
     }
   };
 
-  const handleCreateProjectClick = () => {
-    if (!isAuthenticated) {
-      setPendingPrompt(''); // No specific prompt yet
-      setView('auth');
+  const handleLogout = () => {
+      localStorage.removeItem('ostra_auth');
+      localStorage.removeItem('ostra_user_name');
+      localStorage.removeItem('ostra_user_email');
+      setIsAuthenticated(false);
+      setView('landing');
+  };
+
+  const handlePlanSelect = (plan: { title: string, price: string }) => {
+    setCheckoutPlan(plan);
+  };
+
+  const handleCheckoutSuccess = () => {
+    setCheckoutPlan(null);
+    if (isAuthenticated) {
+        setView('profile');
     } else {
-      setPendingPrompt(''); // Start fresh
-      setView('builder');
+        // Just close modal on landing if not authenticated yet
     }
   };
 
-  // If we are in builder mode, we render the full screen builder without standard header/bg
-  if (view === 'builder') {
-    return (
-        <Builder 
-            initialPrompt={pendingPrompt} 
-            onBack={() => setView('home')} 
-        />
-    );
-  }
+  const handleNavigateToPricing = () => {
+    setView('landing');
+    setTimeout(() => {
+        const element = document.getElementById('pricing');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, 100);
+  };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden selection:bg-cyan-500/30 font-sans">
-      {/* Background Gradients - Only visible in Home/Auth views */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        
-        {/* Top Blue-Cyan Mixer */}
-        <div className="absolute top-[-50vh] left-1/2 -translate-x-1/2 w-[180vw] h-[120vh]">
-          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-600/15 via-cyan-500/5 to-transparent blur-[150px] opacity-80"></div>
-        </div>
+    <div className="min-h-screen bg-[#09090b] text-white selection:bg-cyan-500/30 font-sans">
+      
+      {view === 'builder' ? (
+        <Builder 
+          initialPrompt={builderPrompt} 
+          onBack={() => setView('landing')} 
+        />
+      ) : view === 'profile' ? (
+        <Profile 
+          onBack={() => setView('landing')} 
+          onLogout={handleLogout} 
+          onUpgrade={handleNavigateToPricing}
+        />
+      ) : (
+        <>
+          <Header 
+            onLogin={() => setShowAuth(true)} 
+            isAuthenticated={isAuthenticated}
+            onProfileClick={() => {
+                if (isAuthenticated) setView('profile');
+                else setShowAuth(true);
+            }}
+          />
+          
+          <main>
+            <Hero onStartBuilder={handleStartBuilder} />
+            <Pricing onPlanSelect={handlePlanSelect} />
+            <FAQ />
+            <CTA onStart={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
+          </main>
 
-        {/* Top Edge Linear Gradient */}
-        <div className="absolute top-0 left-0 right-0 h-[50vh]">
-           <div className="w-full h-full bg-gradient-to-b from-blue-950/30 via-blue-900/10 to-transparent blur-[80px]"></div>
-        </div>
+          <Footer />
+        </>
+      )}
 
-        {/* Main Blue/Cyan Glow */}
-        <div className="absolute bottom-[-40vh] left-1/2 -translate-x-1/2 w-[140vw] h-[110vh]">
-          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-400/25 via-blue-600/20 to-transparent blur-[120px] animate-glow-pulse"></div>
-        </div>
-
-        {/* Secondary wider blue glow */}
-        <div className="absolute bottom-0 left-0 right-0 h-[60vh]">
-           <div className="w-full h-full bg-gradient-to-t from-blue-900/20 via-cyan-900/10 to-transparent blur-[100px] animate-pulse"></div>
-        </div>
-
-        {/* Gradient Overlay */}
-         <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/80 via-transparent to-[#050505]/40 pointer-events-none"></div>
-      </div>
-
-      {view !== 'auth' && (
-        <Header 
-            onLogin={() => setView('auth')} 
+      {/* Auth Modal Overlay */}
+      {showAuth && (
+        <Auth 
+          onLogin={handleLoginSuccess} 
+          onBack={() => setShowAuth(false)} 
         />
       )}
-      
-      <main className="relative z-10 flex flex-col min-h-screen">
-        {view === 'home' ? (
-          <>
-            <Hero onStartBuilder={handleStartBuilder} />
-            <Pricing />
-            <FAQ />
-            <CTA onStart={() => handleStartBuilder('')} />
-            <Projects onAuthRequest={handleCreateProjectClick} />
-            <Footer />
-          </>
-        ) : (
-          <div className="flex-grow flex flex-col justify-center">
-             <Auth onLogin={handleLoginSuccess} onBack={() => setView('home')} />
-          </div>
-        )}
-      </main>
+
+      {/* Checkout Modal Overlay */}
+      {checkoutPlan && (
+        <CheckoutModal 
+            plan={checkoutPlan}
+            onClose={() => setCheckoutPlan(null)}
+            onSuccess={handleCheckoutSuccess}
+            isAuthenticated={isAuthenticated}
+            userEmail={isAuthenticated ? localStorage.getItem('ostra_user_email') : null}
+        />
+      )}
     </div>
   );
 };

@@ -3,9 +3,11 @@ import { LogIn } from 'lucide-react';
 
 interface HeaderProps {
   onLogin?: () => void;
+  onProfileClick?: () => void;
+  isAuthenticated?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onLogin }) => {
+export const Header: React.FC<HeaderProps> = ({ onLogin, onProfileClick, isAuthenticated }) => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -26,17 +28,19 @@ export const Header: React.FC<HeaderProps> = ({ onLogin }) => {
             {/* Vertical Divider */}
             <div className="h-5 w-[1px] bg-white/10"></div>
 
-            {/* Animated Login Button (Top Left) */}
-            <button 
-                onClick={onLogin}
-                className="group relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#18181b]/50 border border-white/5 hover:border-cyan-500/30 hover:bg-[#18181b] transition-all duration-300 overflow-hidden"
-            >
-                {/* Button Glow Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                
-                <span className="text-xs font-medium text-zinc-300 group-hover:text-cyan-200 transition-colors relative z-10">Log In</span>
-                <LogIn size={12} className="text-zinc-500 group-hover:text-cyan-400 transition-colors relative z-10 group-hover:translate-x-0.5 transform duration-300" />
-            </button>
+            {/* Animated Login Button (Top Left) - Only show if NOT authenticated */}
+            {!isAuthenticated && (
+                <button 
+                    onClick={onLogin}
+                    className="group relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#18181b]/50 border border-white/5 hover:border-cyan-500/30 hover:bg-[#18181b] transition-all duration-300 overflow-hidden"
+                >
+                    {/* Button Glow Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    
+                    <span className="text-xs font-medium text-zinc-300 group-hover:text-cyan-200 transition-colors relative z-10">Log In</span>
+                    <LogIn size={12} className="text-zinc-500 group-hover:text-cyan-400 transition-colors relative z-10 group-hover:translate-x-0.5 transform duration-300" />
+                </button>
+            )}
           </div>
 
           {/* Center Navigation Pill */}
@@ -62,9 +66,18 @@ export const Header: React.FC<HeaderProps> = ({ onLogin }) => {
 
           {/* Right Profile/Menu Button */}
           <div className="flex items-center gap-4 z-20">
-            <button className="flex items-center justify-between px-1.5 py-1.5 rounded-lg bg-[#27272a] hover:bg-[#3f3f46] transition-colors border border-white/5 w-[68px] h-[36px] cursor-pointer shadow-inner shadow-black/20">
-                <div className="w-6 h-6 rounded bg-indigo-600 ml-0.5 shadow-inner border border-white/5"></div>
-                <div className="w-8 h-1.5 rounded-full bg-zinc-600/50 mr-1"></div>
+            <button 
+                onClick={onProfileClick}
+                className="flex items-center justify-between px-1.5 py-1.5 rounded-lg bg-[#27272a] hover:bg-[#3f3f46] transition-colors border border-white/5 w-[68px] h-[36px] cursor-pointer shadow-inner shadow-black/20 group hover:border-white/10"
+                title={isAuthenticated ? "Account" : "Menu"}
+            >
+                <div className={`w-6 h-6 rounded ml-0.5 shadow-inner border border-white/5 flex items-center justify-center transition-all ${isAuthenticated ? 'bg-gradient-to-tr from-indigo-600 to-cyan-600' : 'bg-zinc-700'}`}>
+                    {isAuthenticated && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                </div>
+                <div className="flex flex-col gap-[3px] mr-2 items-end">
+                    <div className="w-5 h-0.5 rounded-full bg-zinc-500 group-hover:bg-zinc-300 transition-colors"></div>
+                    <div className="w-3 h-0.5 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors"></div>
+                </div>
             </button>
           </div>
       </div>

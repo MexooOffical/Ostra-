@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowRight, X, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ArrowRight, X, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+
+// Declare google global for the Identity Services library
+declare const google: any;
 
 interface AuthProps {
   onLogin: () => void;
@@ -14,73 +17,133 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
+  const handleGoogleLogin = () => {
     setError(null);
+    setSuccessMsg(null);
+    
+    // Check if the Google script has loaded
+    if (typeof google === 'undefined') {
+        setError("Google services are not loaded yet. Please wait a moment or check your connection.");
+        return;
+    }
+
     setIsLoading(true);
 
-    // Basic Validation
+    try {
+        // Initialize the client using the provided Client ID
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: '563619721188-141ihu32tmbkqi0cus0g8vinrbt9h685.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+            callback: async (tokenResponse: any) => {
+                if (tokenResponse && tokenResponse.access_token) {
+                    try {
+                        // Fetch user info from Google API
+                        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                            headers: {
+                                'Authorization': `Bearer ${tokenResponse.access_token}`
+                            }
+                        });
+
+                        if (!userInfoResponse.ok) {
+                            throw new Error('Failed to fetch user profile');
+                        }
+
+                        const userInfo = await userInfoResponse.json();
+
+                        // Save details to localStorage as requested
+                        localStorage.setItem('ostra_user_email', userInfo.email);
+                        localStorage.setItem('ostra_user_name', userInfo.name);
+                        // Store a placeholder password or token to indicate Google auth
+                        localStorage.setItem('ostra_user_password', 'google-oauth-user');
+
+                        setIsLoading(false);
+                        onLogin();
+                    } catch (err) {
+                        console.error('Google User Info Error:', err);
+                        setError("Failed to retrieve user information from Google.");
+                        setIsLoading(false);
+                    }
+                } else {
+                    // User cancelled the prompt or an error occurred
+                    setIsLoading(false);
+                }
+            },
+            error_callback: (nonOAuthError: any) => {
+                console.error('Google Auth Error:', nonOAuthError);
+                setError("Google sign-in encountered an error.");
+                setIsLoading(false);
+            }
+        });
+
+        // Trigger the Google popup
+        client.requestAccessToken();
+
+    } catch (err) {
+        console.error("Google Auth Exception:", err);
+        setError("An unexpected error occurred while starting Google Sign-In.");
+        setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    if (!email) {
+      setError("Please enter your email address to reset your password.");
+      return;
+    }
+    
+    setIsLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+        setIsLoading(false);
+        setSuccessMsg("Password reset email sent! Please check your inbox.");
+    }, 1500);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    setError(null);
+    setSuccessMsg(null);
+    setIsLoading(true);
+
     if (!email || !password) {
       setError("Please fill in all fields.");
       setIsLoading(false);
       return;
     }
 
-    if (!email.includes('@')) {
-      setError("Please enter a valid email address.");
-      setIsLoading(false);
-      return;
-    }
-
-    // Simulate network delay for realism
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    try {
-      // Get existing users from mock DB (localStorage)
-      const storedUsers = localStorage.getItem('ostra_users');
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
-
-      if (mode === 'signup') {
-        // Check for duplicate email
-        if (users.some((u: any) => u.email === email)) {
-          setError("Account with this email already exists.");
-          setIsLoading(false);
-          return;
+    // Simulate API call
+    setTimeout(() => {
+        setIsLoading(false);
+        // Simple mock validation
+        if (password.length < 6) {
+            setError("Password should be at least 6 characters.");
+            return;
         }
-
-        // Create new user
-        const newUser = { email, password };
-        localStorage.setItem('ostra_users', JSON.stringify([...users, newUser]));
         
-        // Success
+        // Save user details to localStorage to persist session data
+        localStorage.setItem('ostra_user_email', email);
+        // Store password to save it to the projects table later as requested
+        localStorage.setItem('ostra_user_password', password);
+
+        // If no name exists, derive one from email for the builder/profile
+        if (!localStorage.getItem('ostra_user_name')) {
+             const derivedName = email.split('@')[0];
+             localStorage.setItem('ostra_user_name', derivedName.charAt(0).toUpperCase() + derivedName.slice(1));
+        }
+        
         onLogin();
-      } else {
-        // Login Logic
-        const user = users.find((u: any) => u.email === email && u.password === password);
-        
-        if (user) {
-          // Success
-          onLogin();
-        } else {
-          // Check if user exists at all to give better error
-          const emailExists = users.some((u: any) => u.email === email);
-          if (emailExists) {
-             setError("Incorrect password.");
-          } else {
-             setError("No account found with this email.");
-          }
-        }
-      }
-    } catch (err) {
-      setError("An unexpected error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
+    }, 1500);
   };
 
   const toggleMode = () => {
     setMode(mode === 'login' ? 'signup' : 'login');
     setError(null);
+    setSuccessMsg(null);
     setPassword('');
   };
 
@@ -145,7 +208,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
 
         {/* Google Button */}
         <button 
-          onClick={onLogin}
+          onClick={handleGoogleLogin}
+          type="button"
           className="w-full bg-white hover:bg-zinc-200 text-black font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-3 transition-colors mb-6 group shadow-lg shadow-white/5"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -165,12 +229,15 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
         </div>
 
         {/* Email/Password Form Section */}
-        <div className="w-full space-y-4">
+        <form className="w-full space-y-4" onSubmit={handleSubmit}>
           
           {/* Email Input */}
           <div className="space-y-1">
              <input 
                 type="email" 
+                name="email"
+                id="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address" 
@@ -182,6 +249,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
           <div className="space-y-1 relative">
              <input 
                 type={showPassword ? "text" : "password"}
+                name="password"
+                id="password"
+                autoComplete={mode === 'login' ? "current-password" : "new-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password" 
@@ -196,10 +266,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
              </button>
           </div>
 
-          {/* Error Message */}
+          {/* Messages */}
           {error && (
-            <div className="text-red-400 text-xs text-center py-1 bg-red-500/10 border border-red-500/20 rounded-lg animate-in fade-in slide-in-from-top-1">
+            <div className="text-red-400 text-xs text-center py-2 bg-red-500/10 border border-red-500/20 rounded-lg animate-in fade-in slide-in-from-top-1">
               {error}
+            </div>
+          )}
+          
+          {successMsg && (
+            <div className="text-green-400 text-xs text-center py-2 bg-green-500/10 border border-green-500/20 rounded-lg animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2">
+              <CheckCircle2 size={12} />
+              {successMsg}
             </div>
           )}
 
@@ -217,13 +294,19 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
                 <span className="text-xs text-zinc-500 font-medium select-none">Remember</span>
                 </div>
 
-                <button className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Forgot password?</button>
+                <button 
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  Forgot password?
+                </button>
             </div>
           )}
 
           {/* The Long Animated Action Button */}
           <button 
-            onClick={handleSubmit}
+            type="submit"
             disabled={isLoading}
             className="w-full relative overflow-hidden group bg-[#09090b] hover:bg-black text-white py-4 rounded-full transition-all duration-300 border border-zinc-800 hover:border-zinc-700 shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(6,182,212,0.1)] cursor-pointer mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
@@ -232,7 +315,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
              
              {/* Right side glow blob */}
-             <div className="absolute -right-6 top-1/2 -translate-y-1/2 w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 blur-[20px] opacity-40 group-hover:opacity-80 group-hover:scale-125 transition-all duration-500 rounded-full"></div>
+             <div className="absolute -right-6 top-1/2 -translate-x-1/2 w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 blur-[20px] opacity-40 group-hover:opacity-80 group-hover:scale-125 transition-all duration-500 rounded-full"></div>
 
              <div className="relative flex items-center justify-center gap-3">
                  {isLoading ? (
@@ -253,6 +336,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
             <p className="text-zinc-500 text-sm">
                 {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
                 <button 
+                  type="button"
                   onClick={toggleMode} 
                   className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors outline-none"
                 >
@@ -261,7 +345,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, onBack }) => {
             </p>
           </div>
           
-        </div>
+        </form>
 
       </div>
     </div>
