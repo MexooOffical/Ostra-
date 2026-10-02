@@ -1,53 +1,69 @@
 import React from 'react';
 import { InputArea } from './InputArea';
 import { QuickStarter } from './QuickStarter';
-import { ChevronRight } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface HeroProps {
   onStartBuilder: (prompt: string) => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({ onStartBuilder }) => {
-  const handleTrialClick = () => {
-     const pricingSection = document.getElementById('pricing');
-     if (pricingSection) {
-        pricingSection.scrollIntoView({ behavior: 'smooth' });
-     }
-  };
-
   return (
-    <div className="relative flex flex-col items-center justify-center w-full px-4 pt-[22vh] pb-8 z-10">
-      
-      {/* Headline */}
-      <h1 className="text-5xl md:text-7xl font-bold text-white text-center mb-6 tracking-tight leading-tight animate-fade-in-up [animation-delay:0.1s] [animation-fill-mode:backwards]">
-        Build something <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-400 drop-shadow-[0_0_30px_rgba(34,211,238,0.5)]">Ostra</span>
-      </h1>
+    <section id="models" className="relative z-10 w-full overflow-hidden bg-white px-4 pb-14 pt-24 text-zinc-950 sm:px-6 sm:pt-28">
+      <div className="mx-auto max-w-[1240px]">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 animate-fade-in-up [animation-delay:0.1s] [animation-fill-mode:backwards]">
+            <Sparkles size={14} />
+            Your AI website studio
+          </div>
 
-      {/* Trial Badge */}
-      <div className="animate-fade-in-up [animation-delay:0.15s] [animation-fill-mode:backwards] mb-6">
-        <button 
-            onClick={handleTrialClick}
-            className="group flex items-center gap-3 pl-1.5 pr-4 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-950/10 hover:bg-indigo-900/20 hover:border-indigo-500/50 transition-all cursor-pointer backdrop-blur-sm shadow-[0_0_20px_rgba(79,70,229,0.1)] hover:shadow-[0_0_25px_rgba(79,70,229,0.2)]"
-        >
-            <span className="px-3 py-0.5 text-[11px] font-bold text-white bg-[#5865F2] rounded-full uppercase tracking-wider shadow-[0_0_12px_rgba(88,101,242,0.6)]">
-                NEW
-            </span>
-            <span className="text-[14px] text-zinc-200 group-hover:text-white transition-colors flex items-center gap-1.5 font-medium">
-                Try 30 days free trial option
-                <ChevronRight size={14} className="text-zinc-500 group-hover:text-white transition-colors" />
-            </span>
-        </button>
-      </div>
-      
-      {/* Subheadline */}
-      <p className="text-zinc-400 text-lg md:text-xl text-center mb-10 font-light max-w-2xl tracking-wide leading-relaxed animate-fade-in-up [animation-delay:0.2s] [animation-fill-mode:backwards]">
-        Idea to professional website in seconds, with your personal AI architect
-      </p>
+          <h1 className="mb-4 text-4xl font-semibold leading-[1.08] text-zinc-950 sm:text-5xl md:text-6xl animate-fade-in-up [animation-delay:0.15s] [animation-fill-mode:backwards]">
+            Build your next website.
+            <br className="hidden sm:block" />
+            <span className="text-emerald-700">One prompt.</span>
+          </h1>
 
-      {/* Interactive Components */}
-      <div className="w-full animate-fade-in-up [animation-delay:0.3s] [animation-fill-mode:backwards]">
-        <InputArea onSubmit={onStartBuilder} />
-        <QuickStarter />
+          <p className="mx-auto mb-7 max-w-2xl text-base leading-7 text-zinc-500 sm:text-lg animate-fade-in-up [animation-delay:0.2s] [animation-fill-mode:backwards]">
+            Describe what you have in mind. Ostra turns your idea into a polished website you can preview, refine, and export.
+          </p>
+
+          <div className="animate-fade-in-up [animation-delay:0.25s] [animation-fill-mode:backwards]">
+            <InputArea onSubmit={onStartBuilder} />
+            <QuickStarter onSelect={onStartBuilder} />
+          </div>
+        </div>
+
+        <div className="mt-10 rounded-[28px] bg-[#a9e5d2] p-2.5 sm:mt-12 sm:rounded-[32px] sm:p-4 animate-fade-in-up [animation-delay:0.3s] [animation-fill-mode:backwards]">
+          <div className="grid overflow-hidden rounded-[21px] bg-white md:min-h-[330px] md:grid-cols-[0.8fr_1.2fr] md:rounded-[24px]">
+            <div className="flex flex-col items-start justify-center px-6 py-8 sm:px-10 sm:py-10">
+              <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                <Sparkles size={14} />
+                From idea to launch
+              </span>
+              <h2 className="max-w-md text-3xl font-semibold leading-tight text-zinc-950 sm:text-4xl">
+                A better way to build with AI.
+              </h2>
+              <p className="mt-3 max-w-md text-sm leading-6 text-zinc-500 sm:text-base">
+                Start with a simple description, then shape your site with a live preview and natural-language edits.
+              </p>
+              <button
+                onClick={() => onStartBuilder('Create a clean, modern AI research website with a clear workflow and an editorial layout.')}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
+              >
+                Start building
+                <ArrowRight size={16} />
+              </button>
+            </div>
+            <div className="relative min-h-[240px] overflow-hidden bg-zinc-100 md:min-h-[330px]">
+              <img
+                src="https://aifiesta.ai/static/images/optimized/deep-research-steps.webp"
+                alt="AI research workflow shown in a product interface"
+                className="absolute inset-0 h-full w-full object-cover object-center"
+                loading="eager"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <style>{`
@@ -57,6 +73,6 @@ export const Hero: React.FC<HeroProps> = ({ onStartBuilder }) => {
         }
         .animate-fade-in-up { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
-    </div>
+    </section>
   );
 };

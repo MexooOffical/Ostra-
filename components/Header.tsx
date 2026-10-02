@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogIn } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   onLogin?: () => void;
@@ -16,70 +16,34 @@ export const Header: React.FC<HeaderProps> = ({ onLogin, onProfileClick, isAuthe
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-6 py-5 bg-transparent pointer-events-none transition-all duration-500 ease-in-out">
-      <div className="pointer-events-auto flex items-center justify-between w-full relative">
-          {/* Left Area: Logo + Login */}
-          <div className="flex items-center gap-6 z-20">
-            {/* Text Logo with Glow */}
-            <span className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] cursor-pointer select-none">
-              Ostra
-            </span>
+    <header className="fixed inset-x-0 top-0 z-40 border-b border-zinc-100 bg-white/95 px-4 py-3 backdrop-blur-md sm:px-6">
+      <div className="mx-auto flex h-9 max-w-[1240px] items-center justify-between">
+        <button onClick={() => scrollToSection('models')} className="flex items-center gap-2 text-xl font-semibold text-zinc-950">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+            <Sparkles size={17} />
+          </span>
+          Ostra
+        </button>
 
-            {/* Vertical Divider */}
-            <div className="h-5 w-[1px] bg-white/10"></div>
+        <nav className="hidden items-center gap-8 md:flex">
+          <button onClick={() => scrollToSection('models')} className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+            Models
+          </button>
+          <button onClick={() => scrollToSection('pricing')} className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+            Pricing
+          </button>
+          <button onClick={() => scrollToSection('faqs')} className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950">
+            FAQs
+          </button>
+        </nav>
 
-            {/* Animated Login Button (Top Left) - Only show if NOT authenticated */}
-            {!isAuthenticated && (
-                <button 
-                    onClick={onLogin}
-                    className="group relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#18181b]/50 border border-white/5 hover:border-cyan-500/30 hover:bg-[#18181b] transition-all duration-300 overflow-hidden"
-                >
-                    {/* Button Glow Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                    
-                    <span className="text-xs font-medium text-zinc-300 group-hover:text-cyan-200 transition-colors relative z-10">Log In</span>
-                    <LogIn size={12} className="text-zinc-500 group-hover:text-cyan-400 transition-colors relative z-10 group-hover:translate-x-0.5 transform duration-300" />
-                </button>
-            )}
-          </div>
-
-          {/* Center Navigation Pill */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block z-20">
-            <nav className="flex items-center p-1 bg-[#121214]/80 backdrop-blur-xl border border-white/[0.08] rounded-full shadow-[0_0_20px_-5px_rgba(255,255,255,0.07)] hover:shadow-[0_0_25px_-5px_rgba(255,255,255,0.12)] transition-shadow duration-500">
-               <button className="px-5 py-2 text-[13px] font-medium text-zinc-400 hover:text-white transition-all rounded-full hover:bg-white/[0.08]">
-                 Features
-               </button>
-               <button 
-                onClick={() => scrollToSection('pricing')}
-                className="px-5 py-2 text-[13px] font-medium text-zinc-400 hover:text-white transition-all rounded-full hover:bg-white/[0.08]"
-               >
-                 Pricing
-               </button>
-               <button 
-                onClick={() => scrollToSection('faqs')}
-                className="px-5 py-2 text-[13px] font-medium text-zinc-400 hover:text-white transition-all rounded-full hover:bg-white/[0.08]"
-               >
-                 FAQs
-               </button>
-            </nav>
-          </div>
-
-          {/* Right Profile/Menu Button */}
-          <div className="flex items-center gap-4 z-20">
-            <button 
-                onClick={onProfileClick}
-                className="flex items-center justify-between px-1.5 py-1.5 rounded-lg bg-[#27272a] hover:bg-[#3f3f46] transition-colors border border-white/5 w-[68px] h-[36px] cursor-pointer shadow-inner shadow-black/20 group hover:border-white/10"
-                title={isAuthenticated ? "Account" : "Menu"}
-            >
-                <div className={`w-6 h-6 rounded ml-0.5 shadow-inner border border-white/5 flex items-center justify-center transition-all ${isAuthenticated ? 'bg-gradient-to-tr from-indigo-600 to-cyan-600' : 'bg-zinc-700'}`}>
-                    {isAuthenticated && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                </div>
-                <div className="flex flex-col gap-[3px] mr-2 items-end">
-                    <div className="w-5 h-0.5 rounded-full bg-zinc-500 group-hover:bg-zinc-300 transition-colors"></div>
-                    <div className="w-3 h-0.5 rounded-full bg-zinc-600 group-hover:bg-zinc-400 transition-colors"></div>
-                </div>
-            </button>
-          </div>
+        <button
+          onClick={isAuthenticated ? onProfileClick : onLogin}
+          className="inline-flex items-center gap-2 rounded-full bg-zinc-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
+        >
+          {isAuthenticated ? 'Account' : 'Log in'}
+          <ArrowRight size={15} />
+        </button>
       </div>
     </header>
   );
