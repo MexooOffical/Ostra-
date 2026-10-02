@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Plus, Search, Star, MessageSquare, Menu, User, 
-  Settings, HelpCircle, Paperclip, ArrowUp, ChevronDown, 
-  X, Layout, Clock, MoreHorizontal, Send, ArrowRight, Save, Loader2
+    Plus, Home, Menu, Paperclip, ArrowUp, ChevronDown, X, ArrowRight, Save,
+    Loader2, Eye, Download
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +21,9 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+    const [generatedHtml, setGeneratedHtml] = useState('');
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const initialPromptSent = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Retrieve User from Local Storage
@@ -43,23 +45,59 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
   }, [messages, isTyping]);
 
   const handleSendMessage = async (textOverride?: string) => {
-    const textToSend = textOverride || input;
-    if (!textToSend.trim()) return;
+    const textToSend = textOverride ?? input;
+    if (!textToSend.trim() || isTyping) return;
 
     const userMsg: Message = { role: 'user', content: textToSend };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
+    setIsPreviewOpen(false);
 
-    // Simulate AI response (Mock)
-    setTimeout(() => {
-        const aiMsg: Message = { 
-            role: 'assistant', 
-            content: "I've received your request. As an AI builder, I would help you construct this website. Since I am in demo mode, I can't generate the full code right now, but I'm ready to assist with your next prompt!" 
-        };
-        setMessages(prev => [...prev, aiMsg]);
+    try {
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: textToSend, currentHtml: generatedHtml })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Website generation failed.');
+        }
+
+        setGeneratedHtml(result.html);
+        setIsPreviewOpen(true);
+        setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Your website is ready. Open Preview to view it, or send another request to refine it.'
+        }]);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Please try again.';
+        setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `I could not generate the website. ${message}`
+        }]);
+    } finally {
         setIsTyping(false);
-    }, 1500);
+    }
+  };
+
+  useEffect(() => {
+    if (initialPrompt.trim() && !initialPromptSent.current) {
+        initialPromptSent.current = true;
+        void handleSendMessage(initialPrompt);
+    }
+  }, [initialPrompt]);
+
+  const handleExportWebsite = () => {
+    if (!generatedHtml) return;
+    const file = new Blob([generatedHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ostra-website.html';
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleSaveProject = async () => {
@@ -117,9 +155,9 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
   };
 
   const suggestionPrompts = [
-    'Example: "Summarize this PDF document"',
-    'Example: "Help me practice my Spanish vocab"',
-    'Example: "Explain how this python game works"'
+    'Example: "Create a portfolio for a photographer"',
+    'Example: "Build a simple online coffee shop"',
+    'Example: "Design a landing page for a fitness studio"'
   ];
 
   const sidebarRecents = [
@@ -134,7 +172,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
   ];
 
   return (
-    <div className="flex h-screen w-full bg-[#F2F0E9] text-[#1a1a1a] font-sans overflow-hidden selection:bg-[#d8b4fe] selection:text-[#1a1a1a]">
+    <div className="flex h-screen w-full bg-white text-[#1a1a1a] font-sans overflow-hidden selection:bg-blue-100 selection:text-[#1a1a1a]">
       
       {/* --- Mobile Sidebar Overlay --- */}
       {isSidebarOpen && (
@@ -145,7 +183,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
       )}
 
       {/* --- Sidebar --- */}
-      <aside className={`
+    <aside className={`hidden
         fixed md:static inset-y-0 left-0 z-50 w-[280px] bg-[#EBE9E4] flex flex-col h-full border-r border-[#dedbd6] flex-shrink-0 transition-transform duration-300 ease-in-out shadow-xl md:shadow-none
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
@@ -170,6 +208,8 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
                 onClick={() => {
                     setMessages([]);
                     setInput('');
+                    setGeneratedHtml('');
+                    setIsPreviewOpen(false);
                     setIsSidebarOpen(false);
                 }}
                 className="w-full flex items-center justify-between px-3 py-2 bg-[#dedbd6] hover:bg-[#d4d1cc] rounded-lg transition-colors group cursor-pointer"
@@ -216,30 +256,50 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
       </aside>
 
       {/* --- Main Content --- */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#F2F0E9]">
+    <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#fafafa]">
          
-         {/* Mobile Header Toggle & Top Bar */}
-         <div className="absolute top-0 left-0 right-0 h-14 z-30 flex items-center justify-between px-4 md:justify-center">
-             <div className="md:hidden">
-                <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-white/50 backdrop-blur rounded-lg text-[#555] shadow-sm">
-                    <Menu size={20} />
-                </button>
+         <header className="h-14 shrink-0 z-30 flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-3 sm:px-5">
+             <div className="flex min-w-0 items-center gap-3">
+                 <button onClick={onBack} className="flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">
+                     <Home size={16} />
+                     <span>Home</span>
+                 </button>
+                 <div className="hidden h-6 w-px bg-zinc-200 sm:block" />
+                 <div className="flex min-w-0 items-center gap-2 rounded-t-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-700">
+                     <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                     <span className="truncate">{initialPrompt || 'New website'}</span>
+                 </div>
              </div>
-             
-             {/* Save Button (Only show if there are messages) */}
-             {messages.length > 0 && (
-                 <div className="absolute right-4 top-2 md:top-3">
-                     <button 
+             <div className="flex shrink-0 items-center gap-1.5">
+                 <button
+                    onClick={() => setIsPreviewOpen(value => !value)}
+                    disabled={!generatedHtml}
+                    className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                 >
+                    <Eye size={16} />
+                    <span className="hidden sm:inline">{isPreviewOpen ? 'Chat' : 'Preview'}</span>
+                 </button>
+                 {messages.length > 0 && (
+                     <button
                         onClick={handleSaveProject}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#dedbd6] rounded-lg text-sm text-[#555] hover:bg-gray-50 shadow-sm transition-all"
+                        className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
                      >
                         {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                        <span className="hidden sm:inline">Save Project</span>
+                        <span className="hidden sm:inline">Save</span>
                      </button>
-                 </div>
-             )}
-         </div>
+                 )}
+                 <button
+                    onClick={handleExportWebsite}
+                    disabled={!generatedHtml}
+                    title="Export website HTML"
+                    className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+                 >
+                    <Download size={16} />
+                    <span className="hidden sm:inline">Export</span>
+                 </button>
+             </div>
+         </header>
 
          {/* --- Conditional View: Welcome vs Chat --- */}
          {messages.length === 0 ? (
@@ -253,7 +313,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
 
                  {/* Main Heading */}
                  <h1 className="text-4xl md:text-6xl font-serif text-[#1a1a1a] mb-8 md:mb-12 tracking-tight text-center">
-                    Meet Ostra
+                    Build your website
                  </h1>
 
                  {/* Input Area - Pill Shape */}
@@ -265,7 +325,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Start your first message with Ostra..."
+                            placeholder="Describe the website you want to build..."
                             className="flex-1 w-full bg-transparent border-none outline-none text-[#1a1a1a] placeholder-[#9CA3AF] px-4 py-3 md:py-2 text-[16px]"
                         />
 
@@ -279,7 +339,7 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
                                 onClick={() => handleSendMessage()}
                                 className="bg-[#5944D5] hover:bg-[#4a36be] text-white px-5 py-2.5 rounded-xl md:rounded-full text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
                              >
-                                <span>Start a new chat</span>
+                                <span>Build website</span>
                                 <ArrowRight size={14} className="hidden md:block" />
                              </button>
                         </div>
@@ -316,12 +376,20 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
              /* Chat View (Standard Chat Interface) */
              <div className="flex flex-col h-full relative">
                  {/* Top Bar for Chat Mode */}
-                 <div className="h-14 border-b border-[#dedbd6] bg-[#F2F0E9] flex items-center justify-center shrink-0">
-                     <span className="font-serif text-[#333] font-medium">Ostra Chat</span>
+                 <div className="h-14 border-b border-zinc-200 bg-white flex items-center justify-center shrink-0">
+                     <span className="font-medium text-zinc-700">Ostra Website Builder</span>
                  </div>
 
                  {/* Messages Area */}
-                 <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-[#dcd9d3]">
+                 <div className="flex-1 overflow-y-auto bg-white p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-300">
+                     {isPreviewOpen && generatedHtml ? (
+                         <iframe
+                            title="Generated website preview"
+                            srcDoc={generatedHtml}
+                            sandbox="allow-scripts allow-forms"
+                            className="h-full min-h-[320px] w-full rounded-xl border border-zinc-200 bg-white"
+                         />
+                     ) : (
                      <div className="max-w-[760px] mx-auto space-y-6 pb-4">
                         {messages.map((msg, idx) => (
                             <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -358,12 +426,18 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
                         )}
                         <div ref={messagesEndRef} />
                      </div>
+                     )}
                  </div>
 
                  {/* Sticky Bottom Input */}
-                 <div className="p-4 bg-[#F2F0E9] z-20">
+                 <div className="p-4 bg-white z-20">
                      <div className="max-w-[760px] mx-auto">
-                        <div className="w-full bg-white rounded-2xl shadow-sm border border-[#e5e5e5] flex items-end p-3 gap-3 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                        <div className="w-full bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/15 transition-all">
+                             <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium ${isTyping ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-50 text-zinc-500'}`}>
+                                 <span className={`h-2 w-2 rounded-full ${isTyping ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+                                 {isTyping ? 'Agent is building your website...' : 'Agent ready'}
+                             </div>
+                             <div className="flex items-end p-3 gap-3">
                              <button className="p-2 text-[#999] hover:text-[#555] transition-colors rounded-lg hover:bg-zinc-100 hidden sm:block">
                                 <Plus size={20} />
                              </button>
@@ -371,18 +445,20 @@ export const Builder: React.FC<BuilderProps> = ({ initialPrompt, onBack }) => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Message Ostra..."
+                                placeholder="Describe a change to your website..."
+                                disabled={isTyping}
                                 className="flex-1 max-h-[120px] py-2 text-[15px] text-[#333] placeholder-[#9CA3AF] resize-none focus:outline-none font-sans bg-transparent leading-relaxed"
                                 rows={1}
                                 style={{ minHeight: '44px' }}
                             />
                             <button 
                                 onClick={() => handleSendMessage()}
-                                disabled={!input.trim()}
+                                disabled={!input.trim() || isTyping}
                                 className={`p-2 rounded-lg transition-all shrink-0 ${input.trim() ? 'bg-[#5944D5] text-white shadow-sm' : 'bg-[#f0f0f0] text-[#ccc]'}`}
                             >
                                 <ArrowUp size={20} strokeWidth={3} />
                             </button>
+                             </div>
                         </div>
                         <div className="text-center mt-2">
                             <p className="text-[11px] text-[#888]">

@@ -7,7 +7,7 @@ interface CTAProps {
 
 export const CTA: React.FC<CTAProps> = ({ onStart }) => {
   return (
-    <section className="relative w-full py-40 px-6 overflow-hidden bg-[#020302] flex flex-col items-center justify-center border-t border-white/[0.02]">
+    <section className="relative w-full py-28 px-6 overflow-hidden bg-[#020302] flex flex-col items-center justify-center border-t border-white/[0.02]">
       
       {/* --- Background Elements (Matching the Green Horizon Image) --- */}
       
